@@ -1,33 +1,209 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { width: 400px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background: #f9f9f9; }
-    h2 { color: #2c3e50; font-size: 18px; margin-top: 0; }
-    .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-    button { 
-      padding: 10px; border: none; border-radius: 5px; background: #3498db; color: white; 
-      cursor: pointer; transition: background 0.3s; font-size: 13px;
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --border: #e2e8f0;
     }
-    button:hover { background: #2980b9; }
-    button.secondary { background: #95a5a6; }
-    button.secondary:hover { background: #7f8c8d; }
-    #status { padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 5px; min-height: 50px; font-size: 13px; color: #666; }
-    .result-item { margin-bottom: 5px; padding: 5px; border-bottom: 1px solid #eee; }
-    .stats-list { list-style: none; padding: 0; }
-    .stats-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+
+    body {
+      width: 380px;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary), #818cf8);
+      padding: 20px;
+      color: white;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(79, 70, 229, 0.2);
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      border-color: var(--primary);
+    }
+
+    .btn svg {
+      width: 24px;
+      height: 24px;
+      color: var(--primary);
+    }
+
+    .btn span {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      min-height: 100px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .status-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #status-content {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .result-item {
+      padding: 8px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      margin-bottom: 6px;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stats-row:last-child {
+      border-bottom: none;
+    }
+
+    .count-badge {
+      background: var(--primary);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .loader {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 10px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      margin-top: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .action-btn:hover {
+      background: var(--primary-hover);
+    }
   </style>
 </head>
 <body>
-  <h2>书签管理大师</h2>
-  <div class="menu">
-    <button id="btn-duplicates">重复检测</button>
-    <button id="btn-deadlinks">死链检测</button>
-    <button id="btn-categorize">自动分类</button>
-    <button id="btn-stats" class="secondary">访问统计</button>
+  <div class="header">
+    <h2>书签管理大师 Pro</h2>
   </div>
-  <div id="status">点击上方按钮开始管理您的书签...</div>
+  <div class="container">
+    <div class="grid">
+      <div class="btn" id="btn-duplicates">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+        <span>重复检测</span>
+      </div>
+      <div class="btn" id="btn-deadlinks">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+        <span>死链检测</span>
+      </div>
+      <div class="btn" id="btn-categorize">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+        <span>自动分类</span>
+      </div>
+      <div class="btn" id="btn-stats">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        <span>访问统计</span>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-title">
+        <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        控制台输出
+      </div>
+      <div id="status-content">
+        准备就绪。请选择上方功能开始管理。
+      </div>
+    </div>
+  </div>
   <script src="popup.js"></script>
 </body>
 </html>

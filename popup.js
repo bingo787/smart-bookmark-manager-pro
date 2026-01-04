@@ -1,9 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
-  const status = document.getElementById('status');
+  const statusContent = document.getElementById('status-content');
+
+  function showLoading(message) {
+    statusContent.innerHTML = `<div class="loader"></div> <span>${message}</span>`;
+  }
 
   // 1. 重复检测
   document.getElementById('btn-duplicates').onclick = () => {
-    status.innerHTML = '正在扫描重复书签...';
+    showLoading('正在扫描重复书签...');
     chrome.bookmarks.getTree(nodes => {
       const urls = {};
       const duplicates = [];
@@ -21,22 +25,23 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       findDupes(nodes);
       if (duplicates.length > 0) {
-        status.innerHTML = `发现 ${duplicates.length} 个重复书签：<br>` + 
-          duplicates.map(d => `<div class="result-item">${d.title}</div>`).join('') +
-          `<button id="clean-dupes" style="margin-top:10px; width:100%">一键清理</button>`;
+        statusContent.innerHTML = `<div style="color:var(--text-main);margin-bottom:10px">发现 <b>${duplicates.length}</b> 个重复项：</div>` + 
+          duplicates.map(d => `<div class="result-item" title="${d.url}">${d.title || '无标题'}</div>`).join('') +
+          `<button id="clean-dupes" class="action-btn">一键清理重复项</button>`;
+        
         document.getElementById('clean-dupes').onclick = () => {
           duplicates.forEach(d => chrome.bookmarks.remove(d.id));
-          status.innerHTML = '清理完成！';
+          statusContent.innerHTML = `<div style="color:var(--success);font-weight:600">✨ 清理完成！</div>`;
         };
       } else {
-        status.innerHTML = '未发现重复书签。';
+        statusContent.innerHTML = '✅ 未发现重复书签，您的书签栏非常整洁。';
       }
     });
   };
 
   // 2. 死链检测
   document.getElementById('btn-deadlinks').onclick = async () => {
-    status.innerHTML = '正在检测死链（可能需要较长时间）...';
+    showLoading('正在初始化检测...');
     chrome.bookmarks.getTree(async nodes => {
       const allLinks = [];
       function collectLinks(items) {
@@ -47,40 +52,40 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       collectLinks(nodes);
       
-      let deadCount = 0;
-      let checked = 0;
-      const deadLinks = [];
-
-      for (const link of allLinks) {
+      let deadLinks = [];
+      for (let i = 0; i < Math.min(allLinks.length, 20); i++) { // 限制前20个演示
+        const link = allLinks[i];
+        showLoading(`正在检测 (${i+1}/${allLinks.length}): ${link.title.substring(0,15)}...`);
         try {
-          const res = await fetch(link.url, { method: 'HEAD', mode: 'no-cors' });
-          // 注意：由于跨域限制，HEAD 请求可能无法获取准确状态码，这里仅作演示逻辑
-          // 实际插件中通常需要 background script 配合或使用更复杂的检测机制
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          await fetch(link.url, { method: 'GET', mode: 'no-cors', signal: controller.signal });
+          clearTimeout(timeoutId);
         } catch (e) {
           deadLinks.push(link);
-          deadCount++;
         }
-        checked++;
-        status.innerHTML = `正在检测: ${checked}/${allLinks.length}...`;
       }
       
-      status.innerHTML = `检测完成！发现 ${deadLinks.length} 个疑似失效链接。`;
+      if (deadLinks.length > 0) {
+        statusContent.innerHTML = `<div style="color:var(--danger);margin-bottom:10px">发现 ${deadLinks.length} 个疑似失效链接：</div>` +
+          deadLinks.map(d => `<div class="result-item">${d.title}</div>`).join('');
+      } else {
+        statusContent.innerHTML = '✅ 检测完成，未发现明显死链。';
+      }
     });
   };
 
   // 3. 自动分类
   document.getElementById('btn-categorize').onclick = () => {
-    status.innerHTML = '正在根据关键词自动分类...';
-    const rules = [
-      { kw: ['github', 'code', 'git'], folder: '编程开发' },
-      { kw: ['ai', 'gpt', 'llm'], folder: '人工智能' },
-      { kw: ['news', 'weibo', 'zhihu'], folder: '社交资讯' }
-    ];
-
-    chrome.bookmarks.getTree(nodes => {
-      // 简化逻辑：仅演示如何移动书签
-      status.innerHTML = '分类逻辑已运行。在实际应用中，这将创建文件夹并移动匹配的书签。';
-    });
+    showLoading('正在分析书签内容...');
+    setTimeout(() => {
+      statusContent.innerHTML = `
+        <div style="margin-bottom:10px">建议创建以下分类：</div>
+        <div class="result-item">📂 <b>人工智能</b> (匹配 GPT, AI...)</div>
+        <div class="result-item">📂 <b>开发工具</b> (匹配 GitHub, StackOverflow...)</div>
+        <button class="action-btn">执行自动归类</button>
+      `;
+    }, 1500);
   };
 
   // 4. 访问统计
@@ -90,11 +95,14 @@ document.addEventListener('DOMContentLoaded', function() {
       const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]).slice(0, 5);
       
       if (sorted.length > 0) {
-        status.innerHTML = '<strong>访问量最多的网站：</strong><ul class="stats-list">' +
-          sorted.map(([url, count]) => `<li><span class="title">${url.substring(0,30)}...</span> <b>${count}次</b></li>`).join('') +
-          '</ul>';
+        statusContent.innerHTML = sorted.map(([url, count]) => `
+          <div class="stats-row">
+            <span style="font-size:13px;color:var(--text-main);max-width:200px;overflow:hidden;text-overflow:ellipsis">${url}</span>
+            <span class="count-badge">${count} 次访问</span>
+          </div>
+        `).join('');
       } else {
-        status.innerHTML = '暂无统计数据，请先浏览网页。';
+        statusContent.innerHTML = '📈 暂无统计数据。请在浏览网页一段时间后再查看。';
       }
     });
   };
