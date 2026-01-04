@@ -33,6 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
     settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
   };
 
+  document.getElementById('btn-fullscreen').onclick = () => {
+    chrome.tabs.create({ url: 'popup.html' });
+  };
+
   document.getElementById('save-settings').onclick = () => {
     chrome.storage.local.set({
       apiKey: apiKeyInput.value,
@@ -107,26 +111,26 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    showLoading('正在提取全量书签...');
+    showLoading(`正在调用 ${config.ollamaMode ? 'Ollama' : 'LLM'} 分析中...`);
     
     chrome.bookmarks.getTree(async nodes => {
-      const allBookmarks = [];
+      const bookmarks = [];
       function collect(items) {
         items.forEach(item => {
-          if (item.url) allBookmarks.push({ title: item.title, url: item.url });
+          if (item.url) bookmarks.push({ title: item.title, url: item.url });
           if (item.children) collect(item.children);
         });
       }
       collect(nodes);
 
-      const batchSize = 50; // 每批处理50个，保证输出稳定性
-      const totalBatches = Math.ceil(allBookmarks.length / batchSize);
+      const batchSize = 50;
+      const totalBatches = Math.ceil(bookmarks.length / batchSize);
       let finalResult = {};
 
       for (let i = 0; i < totalBatches; i++) {
         const start = i * batchSize;
-        const end = Math.min(start + batchSize, allBookmarks.length);
-        const batch = allBookmarks.slice(start, end);
+        const end = Math.min(start + batchSize, bookmarks.length);
+        const batch = bookmarks.slice(start, end);
 
         showLoading(`正在处理第 ${i + 1}/${totalBatches} 批书签 (${start}-${end})...`);
 
@@ -143,18 +147,20 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
-              model: config.modelName || "gpt-4o",
+              model: config.modelName || (config.ollamaMode ? "qwen" : "gpt-4o"),
               messages: [{ role: "user", content: prompt }],
-              temperature: 0.3
+              temperature: 0.3,
+              stream: false
             })
           });
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
           const data = await response.json();
           let content = data.choices[0].message.content;
           content = content.replace(/```json/g, '').replace(/```/g, '').trim();
           const batchResult = JSON.parse(content);
 
-          // 合并结果
           for (const [cat, items] of Object.entries(batchResult)) {
             if (!finalResult[cat]) finalResult[cat] = [];
             finalResult[cat] = finalResult[cat].concat(items);
@@ -164,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      statusContent.innerHTML = `<div style="margin-bottom:10px">🤖 全量语义分析完成 (${allBookmarks.length} 个书签)：</div>` +
+      statusContent.innerHTML = `<div style="margin-bottom:10px">🤖 分析完成 (${bookmarks.length} 个书签)：</div>` +
         Object.entries(finalResult).map(([cat, items]) => `
           <div class="result-item">📂 <b>${cat}</b> (${items.length}个)</div>
         `).join('') +
