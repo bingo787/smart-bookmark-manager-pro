@@ -134,6 +134,7 @@
       border-radius: 6px;
       box-sizing: border-box;
     }
+    .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 13px; }
 
     .loader {
       width: 18px;
@@ -172,14 +173,22 @@
   <div class="container">
     <!-- 设置面板 -->
     <div id="settings-panel">
-      <div class="status-title">API 配置 (OpenAI 兼容)</div>
-      <div class="input-group">
+      <div class="status-title">API 配置</div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="ollama-mode">
+        <label for="ollama-mode">启用 Ollama 本地模式 (无需 Key)</label>
+      </div>
+      <div class="input-group" id="api-key-group">
         <label>API Key</label>
         <input type="password" id="api-key" placeholder="sk-...">
       </div>
       <div class="input-group">
         <label>Base URL</label>
         <input type="text" id="base-url" value="https://api.openai.com/v1">
+      </div>
+      <div class="input-group">
+        <label>模型名称</label>
+        <input type="text" id="model-name" value="gpt-3.5-turbo">
       </div>
       <button class="action-btn" id="save-settings">保存配置</button>
     </div>

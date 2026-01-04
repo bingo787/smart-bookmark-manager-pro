@@ -3,12 +3,33 @@ document.addEventListener('DOMContentLoaded', function() {
   const settingsPanel = document.getElementById('settings-panel');
   const apiKeyInput = document.getElementById('api-key');
   const baseUrlInput = document.getElementById('base-url');
+  const modelNameInput = document.getElementById('model-name');
+  const ollamaModeCheckbox = document.getElementById('ollama-mode');
+  const apiKeyGroup = document.getElementById('api-key-group');
 
   // 加载保存的设置
-  chrome.storage.local.get(['apiKey', 'baseUrl'], (res) => {
+  chrome.storage.local.get(['apiKey', 'baseUrl', 'modelName', 'ollamaMode'], (res) => {
     if (res.apiKey) apiKeyInput.value = res.apiKey;
     if (res.baseUrl) baseUrlInput.value = res.baseUrl;
+    if (res.modelName) modelNameInput.value = res.modelName;
+    if (res.ollamaMode) {
+      ollamaModeCheckbox.checked = res.ollamaMode;
+      apiKeyGroup.style.display = 'none';
+    }
   });
+
+  // Ollama 模式切换
+  ollamaModeCheckbox.onchange = () => {
+    if (ollamaModeCheckbox.checked) {
+      apiKeyGroup.style.display = 'none';
+      baseUrlInput.value = 'http://localhost:11434/v1';
+      modelNameInput.value = 'qwen';
+    } else {
+      apiKeyGroup.style.display = 'block';
+      baseUrlInput.value = 'https://api.openai.com/v1';
+      modelNameInput.value = 'gpt-3.5-turbo';
+    }
+  };
 
   // 切换设置面板
   document.getElementById('btn-settings').onclick = () => {
@@ -19,7 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('save-settings').onclick = () => {
     chrome.storage.local.set({
       apiKey: apiKeyInput.value,
-      baseUrl: baseUrlInput.value
+      baseUrl: baseUrlInput.value,
+      modelName: modelNameInput.value,
+      ollamaMode: ollamaModeCheckbox.checked
     }, () => {
       alert('配置已保存！');
       settingsPanel.style.display = 'none';
@@ -60,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   };
 
-  // 2. 死链检测 (简化版)
+  // 2. 死链检测
   document.getElementById('btn-deadlinks').onclick = () => {
     showLoading('正在检测死链...');
     setTimeout(() => {
@@ -68,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
   };
 
-  // 3. 自动分类 (集成 LLM)
+  // 3. 自动分类
   document.getElementById('btn-categorize').onclick = () => {
     statusContent.innerHTML = `
       <div style="margin-bottom:10px;font-weight:600">请选择分类模式：</div>
@@ -85,14 +108,14 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   async function runLLMCategorize() {
-    const config = await chrome.storage.local.get(['apiKey', 'baseUrl']);
-    if (!config.apiKey) {
+    const config = await chrome.storage.local.get(['apiKey', 'baseUrl', 'modelName', 'ollamaMode']);
+    if (!config.ollamaMode && !config.apiKey) {
       statusContent.innerHTML = '<div style="color:var(--danger)">❌ 请先在设置中配置 API Key！</div>';
       settingsPanel.style.display = 'block';
       return;
     }
 
-    showLoading('正在提取书签并调用 LLM 分析...');
+    showLoading(`正在调用 ${config.ollamaMode ? 'Ollama' : 'LLM'} 分析中...`);
     
     chrome.bookmarks.getTree(async nodes => {
       const bookmarks = [];
@@ -104,36 +127,39 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       collect(nodes);
 
-      const sample = bookmarks.slice(0, 20); // 演示仅取前20个
+      const sample = bookmarks.slice(0, 15);
       const prompt = `你是一个书签管理专家。请分析以下书签标题，将它们归类到 5 个左右的文件夹中。
-      输出格式必须是 JSON: {"分类名": ["书签标题1", "书签标题2"]}
+      输出格式必须是纯 JSON，不要包含 Markdown 代码块标记: {"分类名": ["书签标题1", "书签标题2"]}
       书签列表: ${JSON.stringify(sample.map(b => b.title))}
       只需输出 JSON，不要有其他文字。`;
 
       try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (!config.ollamaMode) headers['Authorization'] = `Bearer ${config.apiKey}`;
+
         const response = await fetch(`${config.baseUrl}/chat/completions`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.apiKey}`
-          },
+          headers: headers,
           body: JSON.stringify({
-            model: "gpt-3.5-turbo",
+            model: config.modelName || "gpt-3.5-turbo",
             messages: [{ role: "user", content: prompt }],
             temperature: 0.3
           })
         });
 
         const data = await response.json();
-        const result = JSON.parse(data.choices[0].message.content);
+        let content = data.choices[0].message.content;
+        // 简单清洗 JSON
+        content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+        const result = JSON.parse(content);
 
-        statusContent.innerHTML = `<div style="margin-bottom:10px">🤖 LLM 语义分析完成：</div>` +
+        statusContent.innerHTML = `<div style="margin-bottom:10px">🤖 语义分析完成：</div>` +
           Object.entries(result).map(([cat, items]) => `
             <div class="result-item">📂 <b>${cat}</b> (${items.length}个)</div>
           `).join('') +
           `<button class="action-btn">确认并执行归类</button>`;
       } catch (e) {
-        statusContent.innerHTML = `<div style="color:var(--danger)">❌ 调用失败: ${e.message}</div>`;
+        statusContent.innerHTML = `<div style="color:var(--danger)">❌ 调用失败: ${e.message}<br>请确保 ${config.ollamaMode ? 'Ollama 已启动并开启了 API' : 'API Key 正确'}</div>`;
       }
     });
   }
