@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Smart Bookmark Manager Pro",
+  "version": "1.0",
+  "description": "具备重复检测、死链检测、自动分类和访问统计功能的书签管理神器",
+  "permissions": [
+    "bookmarks",
+    "storage",
+    "tabs",
+    "history"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

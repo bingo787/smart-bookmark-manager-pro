@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { width: 400px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background: #f9f9f9; }
+    h2 { color: #2c3e50; font-size: 18px; margin-top: 0; }
+    .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    button { 
+      padding: 10px; border: none; border-radius: 5px; background: #3498db; color: white; 
+      cursor: pointer; transition: background 0.3s; font-size: 13px;
+    }
+    button:hover { background: #2980b9; }
+    button.secondary { background: #95a5a6; }
+    button.secondary:hover { background: #7f8c8d; }
+    #status { padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 5px; min-height: 50px; font-size: 13px; color: #666; }
+    .result-item { margin-bottom: 5px; padding: 5px; border-bottom: 1px solid #eee; }
+    .stats-list { list-style: none; padding: 0; }
+    .stats-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <h2>书签管理大师</h2>
+  <div class="menu">
+    <button id="btn-duplicates">重复检测</button>
+    <button id="btn-deadlinks">死链检测</button>
+    <button id="btn-categorize">自动分类</button>
+    <button id="btn-stats" class="secondary">访问统计</button>
+  </div>
+  <div id="status">点击上方按钮开始管理您的书签...</div>
+  <script src="popup.js"></script>
+</body>
+</html>
