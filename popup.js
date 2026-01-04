@@ -135,21 +135,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
       try {
         const headers = { 'Content-Type': 'application/json' };
-        if (!config.ollamaMode) headers['Authorization'] = `Bearer ${config.apiKey}`;
+        if (!config.ollamaMode) {
+          headers['Authorization'] = `Bearer ${config.apiKey}`;
+        }
 
         const response = await fetch(`${config.baseUrl}/chat/completions`, {
           method: 'POST',
           headers: headers,
+          mode: 'cors', // 显式指定跨域模式
           body: JSON.stringify({
-            model: config.modelName || "gpt-3.5-turbo",
+            model: config.modelName || (config.ollamaMode ? "qwen" : "gpt-3.5-turbo"),
             messages: [{ role: "user", content: prompt }],
-            temperature: 0.3
+            temperature: 0.3,
+            stream: false // 确保不使用流式输出
           })
         });
 
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText || '未知错误'}`);
+        }
+
         const data = await response.json();
+        if (!data.choices || !data.choices[0]) {
+          throw new Error('API 返回格式异常，请检查模型名称是否正确');
+        }
+
         let content = data.choices[0].message.content;
-        // 简单清洗 JSON
         content = content.replace(/```json/g, '').replace(/```/g, '').trim();
         const result = JSON.parse(content);
 
