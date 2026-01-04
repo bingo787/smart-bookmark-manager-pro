@@ -74,15 +74,36 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       collect(nodes);
 
-      const sample = bookmarks.slice(0, 30); // 取30个代表性书签进行画像
-      const prompt = `你是一个资深的职业规划师和知识管理专家。请根据以下书签标题，为用户生成一份“个人知识画像”。
+      // 全量预处理：按域名聚合，提取最具代表性的信息
+      const domainMap = {};
+      bookmarks.forEach(b => {
+        try {
+          const domain = new URL(b.url).hostname;
+          if (!domainMap[domain]) domainMap[domain] = { count: 0, titles: [] };
+          domainMap[domain].count++;
+          if (domainMap[domain].titles.length < 3) domainMap[domain].titles.push(b.title);
+        } catch(e) {}
+      });
+
+      const sortedDomains = Object.entries(domainMap)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 50); // 取前50个高频域名
+
+      const summaryData = sortedDomains.map(([domain, data]) => ({
+        domain,
+        count: data.count,
+        examples: data.titles
+      }));
+
+      const prompt = `你是一个资深的职业规划师和知识管理专家。请根据以下全量书签的统计数据，为用户生成一份深度“个人知识画像”。
+      数据包含高频域名、书签数量及代表性标题。
       输出格式必须是纯 JSON: 
       {
-        "summary": "一句话总结用户的兴趣偏好",
-        "tags": ["标签1", "标签2", "标签3"],
-        "domains": [{"name": "领域名", "percent": 80}, {"name": "领域名", "percent": 20}]
+        "summary": "一句话总结用户的兴趣偏好和知识结构",
+        "tags": ["核心标签1", "核心标签2", "核心标签3", "核心标签4", "核心标签5"],
+        "domains": [{"name": "领域名", "percent": 占比}, {"name": "领域名", "percent": 占比}]
       }
-      书签列表: ${JSON.stringify(sample.map(b => b.title))}
+      统计数据: ${JSON.stringify(summaryData)}
       只需输出 JSON，不要有其他文字。`;
 
       try {
