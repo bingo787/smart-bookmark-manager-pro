@@ -53,12 +53,12 @@ document.addEventListener('DOMContentLoaded', function() {
       collectLinks(nodes);
       
       let deadLinks = [];
-      for (let i = 0; i < Math.min(allLinks.length, 20); i++) { // 限制前20个演示
+      for (let i = 0; i < Math.min(allLinks.length, 10); i++) {
         const link = allLinks[i];
         showLoading(`正在检测 (${i+1}/${allLinks.length}): ${link.title.substring(0,15)}...`);
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
           await fetch(link.url, { method: 'GET', mode: 'no-cors', signal: controller.signal });
           clearTimeout(timeoutId);
         } catch (e) {
@@ -77,16 +77,66 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // 3. 自动分类
   document.getElementById('btn-categorize').onclick = () => {
-    showLoading('正在分析书签内容...');
-    setTimeout(() => {
-      statusContent.innerHTML = `
-        <div style="margin-bottom:10px">建议创建以下分类：</div>
-        <div class="result-item">📂 <b>人工智能</b> (匹配 GPT, AI...)</div>
-        <div class="result-item">📂 <b>开发工具</b> (匹配 GitHub, StackOverflow...)</div>
-        <button class="action-btn">执行自动归类</button>
-      `;
-    }, 1500);
+    statusContent.innerHTML = `
+      <div style="margin-bottom:10px;font-weight:600">请选择分类模式：</div>
+      <div class="mode-selector">
+        <button class="mode-btn" id="mode-smart">✨ 智能自动分类 (综合)</button>
+        <button class="mode-btn" id="mode-domain">🌐 按网站域名分类</button>
+        <button class="mode-btn" id="mode-title">📝 按标题关键词分类</button>
+      </div>
+    `;
+
+    document.getElementById('mode-smart').onclick = () => runCategorize('smart');
+    document.getElementById('mode-domain').onclick = () => runCategorize('domain');
+    document.getElementById('mode-title').onclick = () => runCategorize('title');
   };
+
+  function runCategorize(mode) {
+    showLoading(`正在按 ${mode === 'smart' ? '智能' : mode === 'domain' ? '域名' : '标题'} 模式分析...`);
+    
+    chrome.bookmarks.getTree(nodes => {
+      const allBookmarks = [];
+      function collect(items) {
+        items.forEach(item => {
+          if (item.url) allBookmarks.push(item);
+          if (item.children) collect(item.children);
+        });
+      }
+      collect(nodes);
+
+      let suggestions = {};
+      if (mode === 'domain') {
+        allBookmarks.forEach(b => {
+          try {
+            const domain = new URL(b.url).hostname;
+            if (!suggestions[domain]) suggestions[domain] = [];
+            suggestions[domain].push(b);
+          } catch(e) {}
+        });
+      } else if (mode === 'title') {
+        const keywords = ['GitHub', 'AI', 'News', 'Blog', 'Work'];
+        keywords.forEach(kw => suggestions[kw] = []);
+        allBookmarks.forEach(b => {
+          keywords.forEach(kw => {
+            if (b.title.toLowerCase().includes(kw.toLowerCase())) suggestions[kw].push(b);
+          });
+        });
+      } else {
+        suggestions = { "人工智能": [], "编程开发": [], "其他": [] };
+        // 模拟智能逻辑
+      }
+
+      const displayList = Object.entries(suggestions)
+        .filter(([_, list]) => list.length > 0)
+        .slice(0, 5);
+
+      statusContent.innerHTML = `
+        <div style="margin-bottom:10px">分析完成，建议创建以下分类：</div>
+        ${displayList.map(([name, list]) => `<div class="result-item">📂 <b>${name}</b> (${list.length}个书签)</div>`).join('')}
+        <button class="action-btn">确认并执行归类</button>
+      `;
+    });
+  }
 
   // 4. 访问统计
   document.getElementById('btn-stats').onclick = () => {
