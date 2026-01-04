@@ -26,22 +26,20 @@
 
     .header {
       background: linear-gradient(135deg, var(--primary), #818cf8);
-      padding: 20px;
+      padding: 15px 20px;
       color: white;
-      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       box-shadow: 0 2px 10px rgba(79, 70, 229, 0.2);
     }
 
-    .header h2 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
+    .header h2 { margin: 0; font-size: 18px; font-weight: 600; }
+    
+    .settings-icon { cursor: pointer; opacity: 0.8; transition: opacity 0.2s; }
+    .settings-icon:hover { opacity: 1; }
 
-    .container {
-      padding: 16px;
-    }
+    .container { padding: 16px; }
 
     .grid {
       display: grid;
@@ -70,24 +68,16 @@
       border-color: var(--primary);
     }
 
-    .btn svg {
-      width: 24px;
-      height: 24px;
-      color: var(--primary);
-    }
-
-    .btn span {
-      font-size: 13px;
-      font-weight: 500;
-    }
+    .btn svg { width: 24px; height: 24px; color: var(--primary); }
+    .btn span { font-size: 13px; font-weight: 500; }
 
     .status-card {
       background: var(--card-bg);
       border-radius: 12px;
       padding: 16px;
       border: 1px solid var(--border);
-      min-height: 100px;
-      max-height: 250px;
+      min-height: 120px;
+      max-height: 300px;
       overflow-y: auto;
     }
 
@@ -102,10 +92,7 @@
       gap: 6px;
     }
 
-    #status-content {
-      font-size: 14px;
-      line-height: 1.5;
-    }
+    #status-content { font-size: 14px; line-height: 1.5; }
 
     .result-item {
       padding: 8px;
@@ -113,46 +100,53 @@
       background: #f1f5f9;
       margin-bottom: 6px;
       font-size: 13px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    .stats-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
+    .mode-selector { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .mode-btn {
+      padding: 10px;
+      border: 1px solid var(--primary);
+      background: transparent;
+      color: var(--primary);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      text-align: left;
+      transition: all 0.2s;
     }
+    .mode-btn:hover { background: var(--primary); color: white; }
 
-    .stats-row:last-child {
-      border-bottom: none;
+    /* 设置面板样式 */
+    #settings-panel {
+      display: none;
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
     }
-
-    .count-badge {
-      background: var(--primary);
-      color: white;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 11px;
+    .input-group { margin-bottom: 12px; }
+    .input-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    .input-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-sizing: border-box;
     }
 
     .loader {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border: 2px solid #f3f3f3;
       border-top: 2px solid var(--primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
       display: inline-block;
-      vertical-align: middle;
       margin-right: 8px;
+      vertical-align: middle;
     }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     .action-btn {
       width: 100%;
@@ -165,37 +159,31 @@
       cursor: pointer;
       font-weight: 600;
     }
-
-    .action-btn:hover {
-      background: var(--primary-hover);
-    }
-    .mode-selector {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .mode-btn {
-      padding: 8px;
-      border: 1px solid var(--primary);
-      background: transparent;
-      color: var(--primary);
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.2s;
-    }
-    .mode-btn:hover {
-      background: var(--primary);
-      color: white;
-    }
   </style>
 </head>
 <body>
   <div class="header">
     <h2>书签管理大师 Pro</h2>
+    <div class="settings-icon" id="btn-settings">
+      <svg style="width:20px;height:20px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+    </div>
   </div>
+
   <div class="container">
+    <!-- 设置面板 -->
+    <div id="settings-panel">
+      <div class="status-title">API 配置 (OpenAI 兼容)</div>
+      <div class="input-group">
+        <label>API Key</label>
+        <input type="password" id="api-key" placeholder="sk-...">
+      </div>
+      <div class="input-group">
+        <label>Base URL</label>
+        <input type="text" id="base-url" value="https://api.openai.com/v1">
+      </div>
+      <button class="action-btn" id="save-settings">保存配置</button>
+    </div>
+
     <div class="grid">
       <div class="btn" id="btn-duplicates">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
@@ -214,14 +202,13 @@
         <span>访问统计</span>
       </div>
     </div>
+
     <div class="status-card">
       <div class="status-title">
         <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         控制台输出
       </div>
-      <div id="status-content">
-        准备就绪。请选择上方功能开始管理。
-      </div>
+      <div id="status-content">准备就绪。请选择上方功能开始管理。</div>
     </div>
   </div>
   <script src="popup.js"></script>
